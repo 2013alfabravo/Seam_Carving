@@ -19,29 +19,29 @@ fun main(args: Array<String>) {
         return
     }
 
-    var energyMatrix: Array<DoubleArray>
-    var optimalSeam: IntArray
-
     repeat(verticalSeamsToRemove) {
-        energyMatrix = createEnergyMatrix(srcImage)
-        calcPixelWeights(energyMatrix)
-        optimalSeam = getVerticalSeam(energyMatrix)
-        srcImage = srcImage.deleteSeam(optimalSeam)
+        srcImage = resize(srcImage)
     }
 
     srcImage = srcImage.transpose()
+
     repeat(horizontalSeamsToRemove) {
-        energyMatrix = createEnergyMatrix(srcImage)
-        calcPixelWeights(energyMatrix)
-        optimalSeam = getVerticalSeam(energyMatrix)
-        srcImage = srcImage.deleteSeam(optimalSeam)
+        srcImage = resize(srcImage)
     }
+
     srcImage = srcImage.transpose()
 
     val success = saveImageOnDisk(srcImage, outputFileName)
     if (!success) {
         println("Failed to write file: $outputFileName")
     }
+}
+
+private fun resize(img: BufferedImage): BufferedImage {
+    val energyMatrix = createEnergyMatrix(img)
+    calcPixelWeights(energyMatrix)
+    val optimalSeam = getVerticalSeam(energyMatrix)
+    return img.deleteSeam(optimalSeam)
 }
 
 private fun parseArgs(arg: String, args: Array<String>): String? {
@@ -52,7 +52,7 @@ private fun parseArgs(arg: String, args: Array<String>): String? {
 }
 
 private fun getVerticalSeam(matrix: Array<DoubleArray>): IntArray {
-    val minBottomRowEnergy = matrix[matrix.size - 1].minOrNull() ?: matrix[matrix.size - 1][0]
+    val minBottomRowEnergy = matrix[matrix.size - 1].minOrNull() ?: 0.0
     val bottomStartPixel = matrix[matrix.size - 1].indexOfFirst { it == minBottomRowEnergy }
     val seam = IntArray(matrix.size) { 0 }
 
@@ -62,11 +62,9 @@ private fun getVerticalSeam(matrix: Array<DoubleArray>): IntArray {
             0 -> if (matrix[row][prevX + 1] < matrix[row][prevX]) prevX + 1 else prevX
             matrix[0].size - 1 -> if (matrix[row][prevX] < matrix[row][prevX - 1]) prevX else prevX - 1
             else -> {
-                if (matrix[row][prevX + 1] < matrix[row][prevX] &&
-                        matrix[row][prevX + 1] < matrix[row][prevX - 1]) {
+                if (matrix[row][prevX + 1] < matrix[row][prevX] && matrix[row][prevX + 1] < matrix[row][prevX - 1]) {
                     prevX + 1
-                } else if (matrix[row][prevX] < matrix[row][prevX - 1] &&
-                        matrix[row][prevX] <= matrix[row][prevX + 1]) {
+                } else if (matrix[row][prevX] < matrix[row][prevX - 1] && matrix[row][prevX] <= matrix[row][prevX + 1]) {
                     prevX
                 } else {
                     prevX - 1
